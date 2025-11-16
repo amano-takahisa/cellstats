@@ -10,6 +10,7 @@ import skimage
 import skimage.measure
 from matplotlib.colors import LinearSegmentedColormap
 from skimage.measure import label, regionprops_table
+from sklearn.cluster import KMeans
 
 
 def plot_image(image_path: Path, band: int = 0, band_color: str = 'red'):
@@ -211,3 +212,40 @@ def plot_kde_by_image(
 
     plt.tight_layout()
     plt.show()
+
+
+def classify_cells_kmeans(
+    df: pd.DataFrame,
+    column: str = 'area_log10',
+    random_state: int = 42,
+    n_clusters: int = 2,
+) -> pd.DataFrame:
+    """Classify cells into two groups using k-means clustering.
+
+    Uses k-means clustering to separate cells into two groups, typically
+    to distinguish between noise and foreground cells based on area.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing region properties with columns
+            including the specified column for clustering.
+        column (str, optional): Column name to use for clustering.
+            Defaults to 'area_log10'.
+        random_state (int, optional): Random state for reproducibility.
+            Defaults to 42.
+        n_clusters (int, optional): Number of clusters for k-means.
+
+    Returns:
+        pd.DataFrame: Copy of input DataFrame with additional 'cluster' column
+            containing cluster labels (0 or 1).
+
+    """
+    df_result = df.copy()
+
+    # Prepare data for k-means
+    X = df_result[[column]].values
+
+    # Apply k-means clustering with 2 clusters
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state)
+    df_result['cluster'] = kmeans.fit_predict(X)
+
+    return df_result
