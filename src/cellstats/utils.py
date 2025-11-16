@@ -200,5 +200,14 @@ def plot_kde_by_image(
     g.set_titles(col_template='{col_name}')
     g.map(sns.kdeplot, column, bw_adjust=bw_adjust)
     g.map(sns.rugplot, column)
+
+    # Update titles with row counts
+    counts = df_filtered.groupby('image_name').size()
+    for ax in g.axes.flat:
+        image_name = ax.get_title()
+        if image_name and image_name in counts:
+            count = counts[image_name]
+            ax.set_title(f'{image_name}\n(n={count})')
+
     plt.tight_layout()
     plt.show()
