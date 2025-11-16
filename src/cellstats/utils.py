@@ -59,6 +59,89 @@ def plot_regions(
         )
     fig.tight_layout()
     plt.show()
+
+
+Properties: TypeAlias = Literal[
+    'label', 'area', 'bbox', 'centroid', 'solidity', 'eccentricity'
+]
+
+
+def _create_regionprops_dataframe(
+    image_path: Path,
+    band: int = 0,
+    connectivity: int = 1,
+    properties: tuple[Properties, ...] = (
+        'label',
+        'area',
+        'solidity',
+        'eccentricity',
+    ),
+) -> pd.DataFrame:
+    """Create a DataFrame containing region properties from image file.
+
+    Args:
+        image_path (Path): Path to the image file.
+        band (int, optional): Band index to process. Defaults to 0.
+        connectivity (int, optional): Connectivity for labeling. Defaults to 1.
+        properties (tuple[str], optional): Properties to extract.
+            Defaults to ('label', 'area', 'solidity', 'eccentricity').
+
+    Returns:
+        pd.DataFrame: DataFrame containing region properties.
+
+    """
+    image_array = skimage.io.imread(image_path)
+    band_array = image_array[:, :, band]
+    labels = label(band_array, connectivity=connectivity)
+    df = pd.DataFrame(regionprops_table(labels, properties=properties))
+    df['area_log10'] = np.log10(df['area'])
+    df['image_name'] = image_path.stem
+    return df
+
+
+def create_regionprops_dataframe(
+    image_paths: list[Path],
+    band: int = 0,
+    connectivity: int = 1,
+    properties: tuple[Properties, ...] = (
+        'label',
+        'area',
+        'solidity',
+        'eccentricity',
+    ),
+) -> pd.DataFrame:
+    """Create a DataFrame containing region properties from multiple images.
+
+    Processes multiple image files and combines their region properties into
+    a single DataFrame. Each image's regions are analyzed and additional columns
+    for area_log10 and image_name are added.
+
+    Args:
+        image_paths (list[Path]): List of paths to image files.
+        band (int, optional): Band index to process. Defaults to 0.
+        connectivity (int, optional): Connectivity for labeling (1 or 2).
+            Defaults to 1.
+        properties (tuple[Properties, ...], optional): Properties to extract
+            from regions. Defaults to ('label', 'area', 'solidity', 'eccentricity').
+
+    Returns:
+        pd.DataFrame: Combined DataFrame containing region properties from all
+            images with columns for the specified properties plus 'area_log10'
+            and 'image_name'.
+
+    """
+    dfs = []
+    for image_path in image_paths:
+        df = _create_regionprops_dataframe(
+            image_path,
+            band=band,
+            connectivity=connectivity,
+            properties=properties,
+        )
+        dfs.append(df)
+    return pd.concat(dfs, ignore_index=True, sort=False, axis=0)
+
+
 def plot_kde_by_image(
     df: pd.DataFrame,
     column: str = 'area_log10',
