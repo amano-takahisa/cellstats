@@ -13,6 +13,18 @@ from skimage.measure import label, regionprops_table
 
 
 def plot_image(image_path: Path, band: int = 0, band_color: str = 'red'):
+    """Plot multi-band image with full RGB and single band visualization.
+
+    Creates a side-by-side visualization showing the full RGB image and
+    a single band with custom colormap.
+
+    Args:
+        image_path (Path): Path to the image file.
+        band (int, optional): Band index to visualize separately. Defaults to 0.
+        band_color (str, optional): Color for single band visualization.
+            Defaults to 'red'.
+
+    """
     cmap = LinearSegmentedColormap.from_list(
         'cmap', [(0, 'white'), (1, band_color)]
     )
@@ -30,6 +42,22 @@ def plot_regions(
     band: int = 0,
     connectivity: int = 1,
 ):
+    """Plot individual detected regions from an image.
+
+    Detects regions in a specified band and displays them in a grid layout.
+    Each region is shown with optional buffer pixels around it.
+
+    Args:
+        image_path (Path): Path to the image file.
+        n_buffer (int, optional): Number of pixels to include around each region
+            as buffer. Defaults to 2.
+        n_limit (int, optional): Maximum number of regions to plot. Defaults to 25.
+        band (int, optional): Band index to process for region detection.
+            Defaults to 0.
+        connectivity (int, optional): Connectivity for labeling (1 or 2).
+            1 for 4-connectivity, 2 for 8-connectivity. Defaults to 1.
+
+    """
     image_array = skimage.io.imread(image_path)
     band_array = image_array[:, :, band]
     band_label = skimage.measure.label(band_array, connectivity=connectivity)
@@ -148,6 +176,23 @@ def plot_kde_by_image(
     bw_adjust: float = 0.5,
     n_limit: int = 25,
 ):
+    """Plot kernel density estimate (KDE) distributions by image.
+
+    Creates a faceted plot showing KDE and rug plots for each image's
+    distribution of the specified column. Titles include image names and
+    sample counts.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing region properties with
+            'image_name' column and the specified column for plotting.
+        column (str, optional): Column name to plot distribution for.
+            Defaults to 'area_log10'.
+        bw_adjust (float, optional): Bandwidth adjustment for KDE.
+            Lower values show more detail. Defaults to 0.5.
+        n_limit (int, optional): Maximum number of images to plot.
+            Defaults to 25.
+
+    """
     unique_images = df['image_name'].unique()[:n_limit]
     df_filtered = df[df['image_name'].isin(unique_images)]
 
