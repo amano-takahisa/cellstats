@@ -1,0 +1,104 @@
+[project]
+authors = [{name = "Taka", email = "amano.takahisa@gmail.com"}]
+dependencies = []
+name = "cellstats"
+requires-python = ">= 3.11"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.isort]
+profile = "hug"
+line_length = 79
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+cellstats = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+test = "pytest --cov=src/dekad --cov-report=xml --cov-report=term"
+
+[tool.pixi.feature.test.dependencies]
+isort = "*"
+pyright = "*"
+pytest = "*"
+pytest-cov = "*"
+ruff = "*"
+
+[tool.pixi.feature.test.tasks]
+test = "pytest --cov=src/dekad --cov-report=xml --cov-report=term"
+
+[tool.pixi.feature.development.dependencies]
+
+[tool.pixi.feature.development.tasks]
+check = "isort --check scripts/ src/ tests/ ; ruff check scripts/ src/ tests/ ; pyright scripts/ src/ tests/ "
+fix = "isort scripts/ src/ tests/ ; ruff check scripts/ src/ tests/ --fix --unsafe-fixes ; ruff format scripts/ src/ tests/ ; pyright scripts/ src/ tests/"
+
+[tool.pixi.environments]
+default = { features = [], solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+development = { features = ["test", "development"], solve-group = "default" }
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+select = ["ALL"]
+ignore = [
+  "ANN003",  # Missing type annotation for **{name}
+  "COM812",  # Trailing comma missing. Compatibility issues https://github.com/astral-sh/ruff/issues/9216
+  "D105",  # Missing docstring in magic method
+  "D203",  # Checks for docstrings on class definitions that are not preceded by a blank line.
+  "D213",  # Checks for docstring summary lines that are not positioned on the second physical line of the docstring.
+  "ERA001",  # Found commented-out code
+  "FIX",  # Check for FIXME, TODO and other temporary developer notes.
+  "ISC001",  # Implicitly concatenated string literals on one line
+  "PGH003",  # Check for type: ignore annotations that suppress all type warnings, as opposed to targeting specific type warnings.
+  "TD",  # Lint TODO comments in a Python code
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+  "D104",  # Missing docstring in public package
+]
+"cli.py" = [
+  "D103",  # Missing docstring in public function
+]
+"src/dekad/*.py" = [
+  "PLR2004",  # Checks for the use of unnamed numerical constants ("magic") values in comparisons.
+]
+"{tests}/*" = [
+  "INP001",  # File {filename} is part of an implicit namespace package. Add an __init__.py.
+  "D100",  # Missing docstring in public module
+  "D101",  # Missing docstring in public class
+  "D102",  # Missing docstring in public method
+  "D103",  # Missing docstring in public function
+  "ANN201", # Missing return type annotation for public function
+  "S101",  # Use of assert detected
+  "S307",  # Use of possibly insecure function; consider using ast.literal_eval
+  "SLF001",  # Checks for accesses on "private" class members.
+  "PLR0913",  # Too many arguments in function definition ( > 5 )
+  "PLR2004",  # Checks for the use of unnamed numerical constants ("magic") values in comparisons.
+  ]
+"{scripts}/*" = [
+  "T201",  # Use of print detected
+  "S603",  # Check for method calls that initiate a subprocess without a shell.
+  "S607",  # Checks for the starting of a process with a partial executable path.
+]
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "single"
+multiline-quotes = "double"
+
+[tool.pyright]
+venvPath = ".pixi/envs"
+venv = "development"
