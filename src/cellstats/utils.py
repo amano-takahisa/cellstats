@@ -214,38 +214,100 @@ def plot_kde_by_image(
     plt.show()
 
 
+def _apply_kmeans_with_ordered_labels(
+    df_group: pd.DataFrame,
+    column: str,
+    n_clusters: int,
+    random_state: int,
+) -> np.ndarray:
+    """Apply k-means clustering and relabel based on mean area.
+
+    Performs k-means clustering on the specified column and relabels clusters
+    so that cluster 0 has the smallest mean area, cluster 1 has the next
+    smallest, and so on.
+
+    Args:
+        df_group (pd.DataFrame): DataFrame or group to cluster.
+        column (str): Column name to use for clustering.
+        n_clusters (int): Number of clusters for k-means.
+        random_state (int): Random state for reproducibility.
+
+    Returns:
+        np.ndarray: Array of cluster labels ordered by mean area
+            (0 = smallest, n_clusters-1 = largest).
+
+    """
+    # Apply k-means clustering
+    X = df_group[[column]].values
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state)
+    initial_labels = kmeans.fit_predict(X)
+
+    # Calculate mean area for each cluster
+    df_temp = df_group.copy()
+    df_temp['temp_cluster'] = initial_labels
+    mean_areas = df_temp.groupby('temp_cluster')['area'].mean()
+
+    # Create mapping: sort clusters by mean area (ascending)
+    sorted_clusters = mean_areas.sort_values().index.tolist()
+    label_mapping = {
+        old_label: new_label
+        for new_label, old_label in enumerate(sorted_clusters)
+    }
+
+    # Apply mapping to relabel clusters
+    relabeled = np.array([label_mapping[label] for label in initial_labels])
+
+    return relabeled
+
+
 def classify_cells_kmeans(
     df: pd.DataFrame,
     column: str = 'area_log10',
     random_state: int = 42,
     n_clusters: int = 2,
+    group_by: str | None = None,
 ) -> pd.DataFrame:
-    """Classify cells into two groups using k-means clustering.
+    """Classify cells into groups using k-means clustering.
 
-    Uses k-means clustering to separate cells into two groups, typically
+    Uses k-means clustering to separate cells into groups, typically
     to distinguish between noise and foreground cells based on area.
+    Can optionally perform clustering separately within each group.
+    Cluster labels are standardized so that 0 represents smaller area
+    and 1 represents larger area.
 
     Args:
         df (pd.DataFrame): DataFrame containing region properties with columns
-            including the specified column for clustering.
+            including the specified column for clustering and 'area' column.
         column (str, optional): Column name to use for clustering.
             Defaults to 'area_log10'.
         random_state (int, optional): Random state for reproducibility.
             Defaults to 42.
         n_clusters (int, optional): Number of clusters for k-means.
+            Defaults to 2.
+        group_by (str | None, optional): Column name to group by before
+            clustering. If specified, k-means is applied separately within
+            each group. Defaults to None.
 
     Returns:
         pd.DataFrame: Copy of input DataFrame with additional 'cluster' column
-            containing cluster labels (0 or 1).
+            containing cluster labels (0 for smaller area, 1 for larger area).
 
     """
     df_result = df.copy()
 
-    # Prepare data for k-means
-    X = df_result[[column]].values
-
-    # Apply k-means clustering with 2 clusters
-    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state)
-    df_result['cluster'] = kmeans.fit_predict(X)
+    if group_by is None:
+        # Apply k-means clustering to entire dataset
+        df_result['cluster'] = _apply_kmeans_with_ordered_labels(
+            df_result, column, n_clusters, random_state
+        )
+    else:
+        # Apply k-means clustering separately within each group
+        cluster_labels = []
+        for _, group in df_result.groupby(group_by):
+            labels = _apply_kmeans_with_ordered_labels(
+                group, column, n_clusters, random_state
+            )
+            cluster_labels.extend(labels)
+        df_result['cluster'] = cluster_labels
 
     return df_result
