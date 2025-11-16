@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import Literal, TypeAlias
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
 import skimage
 import skimage.measure
 from matplotlib.colors import LinearSegmentedColormap
@@ -24,7 +26,7 @@ def plot_image(image_path: Path, band: int = 0, band_color: str = 'red'):
 def plot_regions(
     image_path: Path,
     n_buffer: int = 2,
-    limit_num: int = 25,
+    n_limit: int = 25,
     band: int = 0,
     connectivity: int = 1,
 ):
@@ -33,7 +35,7 @@ def plot_regions(
     band_label = skimage.measure.label(band_array, connectivity=connectivity)
     region_props = skimage.measure.regionprops(band_label)
 
-    num = min(len(region_props), limit_num)
+    num = min(len(region_props), n_limit)
     nrows = math.ceil(math.sqrt(num))
     ncols = math.ceil(num / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(10, 10))
@@ -56,4 +58,19 @@ def plot_regions(
             f'\nArea: {int(region_props[i].area)}'
         )
     fig.tight_layout()
+    plt.show()
+def plot_kde_by_image(
+    df: pd.DataFrame,
+    column: str = 'area_log10',
+    bw_adjust: float = 0.5,
+    n_limit: int = 25,
+):
+    unique_images = df['image_name'].unique()[:n_limit]
+    df_filtered = df[df['image_name'].isin(unique_images)]
+
+    g = sns.FacetGrid(df_filtered, col='image_name', col_wrap=4, height=3)
+    g.set_titles(col_template='{col_name}')
+    g.map(sns.kdeplot, column, bw_adjust=bw_adjust)
+    g.map(sns.rugplot, column)
+    plt.tight_layout()
     plt.show()
