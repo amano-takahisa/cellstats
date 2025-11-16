@@ -302,12 +302,11 @@ def classify_cells_kmeans(
         )
     else:
         # Apply k-means clustering separately within each group
-        cluster_labels = []
+        # Use index-based assignment to ensure correct row mapping
         for _, group in df_result.groupby(group_by):
             labels = _apply_kmeans_with_ordered_labels(
                 group, column, n_clusters, random_state
             )
-            cluster_labels.extend(labels)
-        df_result['cluster'] = cluster_labels
+            df_result.loc[group.index, 'cluster'] = labels
 
     return df_result
