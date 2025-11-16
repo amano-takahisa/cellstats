@@ -20,8 +20,17 @@ platforms = ["linux-64"]
 [tool.pixi.pypi-dependencies]
 cellstats = { path = ".", editable = true }
 
+[tool.pixi.dependencies]
+marimo = ">=0.17.8,<0.18"
+matplotlib = ">=3.10.8,<4"
+numpy = ">=2.3.4,<3"
+pandas = ">=2.3.3,<3"
+pydantic = ">=2"
+scikit-image = ">=0.25.2,<0.26"
+seaborn = ">=0.13.2,<0.14"
+websockets = ">=15.0.1,<16"
+
 [tool.pixi.tasks]
-test = "pytest --cov=src/dekad --cov-report=xml --cov-report=term"
 
 [tool.pixi.feature.test.dependencies]
 isort = "*"
@@ -34,6 +43,9 @@ ruff = "*"
 test = "pytest --cov=src/dekad --cov-report=xml --cov-report=term"
 
 [tool.pixi.feature.development.dependencies]
+mcp = "*"
+python-lsp-ruff = "*"
+python-lsp-server = "*"
 
 [tool.pixi.feature.development.tasks]
 check = "isort --check scripts/ src/ tests/ ; ruff check scripts/ src/ tests/ ; pyright scripts/ src/ tests/ "
