@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Literal, TypeAlias
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import skimage
 import skimage.measure
@@ -23,11 +22,17 @@ def plot_image(image_path: Path, band: int = 0, band_color: str = 'red'):
 
 
 def plot_regions(
-    region_props: list[skimage.measure._regionprops.RegionProperties],
-    image: np.ndarray,
+    image_path: Path,
     n_buffer: int = 2,
     limit_num: int = 25,
+    band: int = 0,
+    connectivity: int = 1,
 ):
+    image_array = skimage.io.imread(image_path)
+    band_array = image_array[:, :, band]
+    band_label = skimage.measure.label(band_array, connectivity=connectivity)
+    region_props = skimage.measure.regionprops(band_label)
+
     num = min(len(region_props), limit_num)
     nrows = math.ceil(math.sqrt(num))
     ncols = math.ceil(num / nrows)
@@ -44,10 +49,11 @@ def plot_regions(
             )
         else:
             slice_ = region_props[i].slice
-        array = image[slice_]
+        array = image_array[slice_]
         axs[i].matshow(array)
         axs[i].set_title(
-            f'Label: {region_props[i].label}\nArea: {int(region_props[i].area)}'
+            f'Label: {region_props[i].label}'
+            f'\nArea: {int(region_props[i].area)}'
         )
     fig.tight_layout()
     plt.show()
