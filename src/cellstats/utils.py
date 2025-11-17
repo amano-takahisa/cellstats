@@ -310,3 +310,82 @@ def classify_cells_kmeans(
             df_result.loc[group.index, 'class'] = labels
 
     return df_result
+
+
+def export_denoised_image(
+    input_image_paths: list[Path],
+    output_image_paths: list[Path],
+    class_df: pd.DataFrame,
+    band: int = 0,
+    remove_classes: list[int] | None = None,
+    class_column: str = 'class',
+    image_name_column: str = 'image_name',
+    connectivity: int = 1,
+):
+    """Export denoised images by removing specified classes.
+
+    Processes images by creating label maps and removing pixels belonging to
+    specified classes. Only the specified band is modified; other bands are
+    preserved.
+
+    Args:
+        input_image_paths (list[Path]): List of paths to input image files.
+        output_image_paths (list[Path]): List of paths for output image files.
+            Must have same length as input_image_paths.
+        class_df (pd.DataFrame): DataFrame containing label classifications with
+            columns for label, image name, and class.
+        band (int, optional): Band index to process. Defaults to 0.
+        remove_classes (list[int] | None, optional): List of class values to
+            remove. Defaults to [0].
+        class_column (str, optional): Name of class column in class_df.
+            Defaults to 'class'.
+        image_name_column (str, optional): Name of image name column in class_df.
+            Defaults to 'image_name'.
+        connectivity (int, optional): Connectivity for labeling (1 or 2).
+            Defaults to 1.
+
+    Raises:
+        ValueError: If input_image_paths and output_image_paths have different
+            lengths, if any input and output path pair are the same (would
+            overwrite input file), or if an image is not found in class_df.
+
+    """
+    if remove_classes is None:
+        remove_classes = [0]
+
+    if len(input_image_paths) != len(output_image_paths):
+        raise ValueError(
+            f'Length mismatch: input_image_paths ({len(input_image_paths)}) '
+            f'!= output_image_paths ({len(output_image_paths)})'
+        )
+
+    for input_path, output_path in zip(input_image_paths, output_image_paths):
+        if input_path.resolve() == output_path.resolve():
+            raise ValueError(
+                f'Input and output paths must be different: {input_path}'
+            )
+
+    for input_path, output_path in zip(input_image_paths, output_image_paths):
+        image_array = skimage.io.imread(input_path)
+
+        band_array = image_array[:, :, band]
+        labels = label(band_array, connectivity=connectivity)
+
+        image_name = input_path.name
+        image_df = class_df[class_df[image_name_column] == image_name]
+
+        if len(image_df) == 0:
+            raise ValueError(
+                f'No data found in class_df for image: {image_name}'
+            )
+
+        labels_to_remove = image_df[
+            image_df[class_column].isin(remove_classes)
+        ]['label'].values
+
+        mask = np.isin(labels, labels_to_remove)
+
+        output_array = image_array.copy()
+        output_array[mask, band] = 0
+
+        skimage.io.imsave(output_path, output_array, check_contrast=False)
