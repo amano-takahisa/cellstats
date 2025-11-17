@@ -124,7 +124,7 @@ def _create_regionprops_dataframe(
     labels = label(band_array, connectivity=connectivity)
     df = pd.DataFrame(regionprops_table(labels, properties=properties))
     df['area_log10'] = np.log10(df['area'])
-    df['image_name'] = image_path.stem
+    df['image_name'] = image_path.name
     return df
 
 
